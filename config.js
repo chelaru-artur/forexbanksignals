@@ -4,7 +4,7 @@ module.exports = {
 	refreshTime: 5000,
 	sendTo: 'chelaru.artur@mail.ru',
 	mail: {
-		user: 'example@mail.com',
-		pass: 'superMegaEncryptedPass'
+		user: 'chelaru.artur@gmail.com',
+		pass: 'dragan309'
 	}
 }

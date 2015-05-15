@@ -1,3 +1,4 @@
+var http = require('http');
 var EventEmitter = require('events').EventEmitter;
 var cheerio = require('cheerio');
 var request = require('request');
@@ -72,3 +73,8 @@ setInterval(function() {
 		getData(currency);
 	});
 }, REFRESH_TIME);
+
+http.createServer(function(req, res) {
+    res.end(JSON.stringify(currencyList));
+
+}).listen((process.env.PORT || 1337));
