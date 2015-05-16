@@ -25,9 +25,11 @@ var currencyList = cfg.currencyList.map(function(e) {
 	};
 });
 
-
+router.get('/', function(req, res) {
+	res.send(currencyList);
+});
 router.get('/:message', function(req, res) {
-	if (req.params.message) notificator.emit('message', req.params.message);
+	notificator.emit('message', req.params.message);
 	res.send(currencyList);
 });
 app.use('/', router);
