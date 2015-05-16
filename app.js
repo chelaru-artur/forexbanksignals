@@ -27,7 +27,7 @@ var currencyList = cfg.currencyList.map(function(e) {
 
 
 router.get('/:message', function(req, res) {
-	notificator.emit('message', req.params.message);
+	if (req.params.message) notificator.emit('message', req.params.message);
 	res.send(currencyList);
 });
 app.use('/', router);
