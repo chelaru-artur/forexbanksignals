@@ -1,5 +1,9 @@
+var WebSocketServer = require("ws").Server
 var http = require('http');
 var EventEmitter = require('events').EventEmitter;
+var express = require('express');
+var app = express();
+var router = express.Router();
 var cheerio = require('cheerio');
 var request = require('request');
 var cfg = require('./config.js');
@@ -21,6 +25,12 @@ var currencyList = cfg.currencyList.map(function(e) {
 	};
 });
 
+
+router.get('/:message', function(req, res) {
+	notificator.emit('message', req.params.message);
+	res.send(currencyList);
+});
+app.use('/', router);
 
 // the url from where will get data, at the ant of url will pe  concatenated the currency pair
 var URL = 'http://forexbanksignals.com/control_panel/trade.php?smb=';
@@ -53,6 +63,7 @@ function verifyStatus(data) {
 	}
 }
 
+
 notificator.on('notify', function(currency) {
 	if (!currency.isActive) {
 		currency.isActive = true;
@@ -74,7 +85,30 @@ setInterval(function() {
 	});
 }, REFRESH_TIME);
 
-http.createServer(function(req, res) {
-    res.end(JSON.stringify(currencyList));
 
-}).listen((process.env.PORT || 1337));
+
+var server = http.createServer(app);
+server.listen((process.env.PORT || 1337));
+
+var wss = new WebSocketServer({
+	server: server
+})
+
+wss.on("connection", function(ws) {
+	notificator.on('message', function(msg) {
+		ws.send(msg);
+	});
+
+
+	notificator.on('notify', function(currency) {
+		currency.isActive = true;
+		ws.send(currency.msg);
+
+	});
+	console.log("websocket connection open")
+
+	ws.on("close", function() {
+		console.log("websocket connection close")
+
+	})
+})
