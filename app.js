@@ -1,7 +1,7 @@
-var WebSocketServer = require("ws").Server
 var http = require('http');
 var EventEmitter = require('events').EventEmitter;
 var express = require('express');
+var bodyParser = require('body-parser');
 var app = express();
 var router = express.Router();
 var cheerio = require('cheerio');
@@ -24,14 +24,19 @@ var currencyList = cfg.currencyList.map(function(e) {
 		isActive: false,
 	};
 });
-
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+	extended: false
+}));
 router.get('/', function(req, res) {
-	res.send(currencyList);
+
+	res.send(JSON.stringify(currencyList) + '<br><form action="/message" method="POST"><input type="text" name="message"><input type="submit"></form>');
 });
-router.get('/:message', function(req, res) {
-	notificator.emit('message', req.params.message);
-	res.send(currencyList);
+router.post('/message', function(req, res) {
+	notificator.emit('message', req.body.message);
+     res.redirect('/');
 });
+
 app.use('/', router);
 
 // the url from where will get data, at the ant of url will pe  concatenated the currency pair
@@ -66,19 +71,6 @@ function verifyStatus(data) {
 }
 
 
-notificator.on('notify', function(currency) {
-	if (!currency.isActive) {
-		currency.isActive = true;
-		//send push message	
-		transporter.sendMail({
-			from: 'sender@address',
-			to: cfg.sendTo,
-			subject: 'Report',
-			text: currency.msg
-		});
-
-	}
-});
 
 //start
 setInterval(function() {
@@ -90,27 +82,28 @@ setInterval(function() {
 
 
 var server = http.createServer(app);
-server.listen((process.env.PORT || 1337));
-
-var wss = new WebSocketServer({
-	server: server
-})
-
-wss.on("connection", function(ws) {
-	notificator.on('message', function(msg) {
-		ws.send(msg);
-	});
-
-
+var io = require('socket.io')(server);
+io.on('connection', function(socket) {
+	console.log('a user connected');
 	notificator.on('notify', function(currency) {
-		currency.isActive = true;
-		ws.send(currency.msg);
+		if (!currency.isActive) {
+			currency.isActive = true;
+			io.emit('notification', currency.msg);
 
+			//send email message	
+			transporter.sendMail({
+				from: 'sender@address',
+				to: cfg.sendTo,
+				subject: 'Report',
+				text: currency.msg
+			});
+
+		}
 	});
-	console.log("websocket connection open")
+	notificator.on('message', function(msg) {
+		console.log(msg);
+		socket.emit('notification', msg);
+	});
+});
 
-	ws.on("close", function() {
-		console.log("websocket connection close")
-
-	})
-})
+server.listen((process.env.PORT || 1337));
